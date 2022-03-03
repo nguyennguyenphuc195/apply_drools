@@ -1,0 +1,69 @@
+package rules;
+import java.util.Map;
+
+declare Promotion
+    @role( event )
+    @timestamp( timestamp )
+    @duration ( duration )
+
+    name : String
+    percent : float
+    timestamp : long
+    duration : long
+end
+
+rule addPromotionEvent
+    salience 10
+when
+    $prom : Map(   this["promotionName"] != null,
+                   this["percent"] != null,
+                   this["timestamp"] != null,
+                   this["duration"] != null
+               ) from entry-point "Promotion"
+then
+    insertLogical(
+        new Promotion(
+            (String) $prom.get("promotionName"),
+            (float) $prom.get("percent"),
+            (long) $prom.get("timestamp"),
+            (long) $prom.get("duration"))
+         );
+end
+
+rule applyPromotion
+    salience 10
+when
+    $prom : Promotion($promotionName : name, $promotionPercent : percent)
+    $e : Event( this during $prom,
+                !this.voucher.containsKey("promotionName"),
+                $voucher : this.voucher
+              )
+then
+    //System.out.println("apply");
+    $voucher.put("promotionName", $promotionName);
+    $voucher.put("promotionPercent", $promotionPercent);
+    if ($voucher.containsKey("revenue")) {
+        System.out.println("Remove old revenue for after promotion added " + $e);
+        $voucher.remove("revenue"); //Tinh lai neu can thiet
+    }
+    update($voucher);
+end
+
+rule removePromotion
+    salience 10
+when
+    $e : Event(
+                this.voucher.containsKey("promotionName"),
+                $voucher : this.voucher
+              )
+    not Promotion($promotionName : name, $promotionPercent : percent, this includes $e)
+then
+    //System.out.println("apply");
+    $voucher.remove("promotionName");
+    $voucher.remove("promotionPercent");
+    if ($voucher.containsKey("revenue")) {
+        System.out.println("Remove old revenue for after promotion removed " + $e);
+        $voucher.remove("revenue"); //Tinh lai neu can thiet
+    }
+    update($voucher);
+end

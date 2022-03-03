@@ -1,0 +1,8 @@
+package rules;
+
+import model.promotion.Product;
+import model.promotion.Promotion;
+
+query list_all_product
+    $product : Product()
+end

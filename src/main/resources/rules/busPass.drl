@@ -1,0 +1,51 @@
+
+import model.busexample.AdultBusPass
+import model.busexample.ChildBusPass
+import model.busexample.IsAdult
+import model.busexample.IsChild
+import model.busexample.Person
+import model.busexample.Policy
+
+rule "Infer Child"
+when
+  $policy : Policy()
+  $p : Person(age < $policy.getAge())
+then
+  insertLogical(new IsChild($p));
+  System.out.println($p.getName() + " is child");
+end
+
+rule "Infer Adult"
+when
+  $policy : Policy()
+  $p : Person(age >= $policy.getAge())
+then
+  insertLogical(new IsAdult($p));
+  System.out.println($p.getName() + " is adult");
+end
+
+rule "Issue Child Bus Pass"
+when
+  $p : Person()
+  IsChild(p == $p)
+then
+  insertLogical(new ChildBusPass($p));
+    System.out.println($p.getName() + " issue child bus pass");
+end
+
+rule "Issue Adult Bus Pass"
+when
+  $p : Person()
+  IsAdult(p == $p)
+then
+  insertLogical(new AdultBusPass($p));
+  System.out.println($p.getName() + " issue adult bus pass");
+end
+
+rule "Return ChildBusPass Request"
+when
+  $p : Person()
+  not(ChildBusPass(p == $p))
+then
+  System.out.println($p.getName() + " return child bus pass");
+end

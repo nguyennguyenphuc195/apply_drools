@@ -1,0 +1,32 @@
+package rules;
+
+import model.promotion.Product;
+import model.promotion.Promotion;
+import model.promotion.PromotionApplication;
+
+rule "create promotion"
+no-loop true
+when
+  $product : Product($id : id, $oldSalePrice : salePrice)
+  $promotion : Promotion( $id memberOf idAffects  )
+then
+  insertLogical(new PromotionApplication($promotion, $product));
+end
+
+rule "apply promotion"
+when
+  $product : Product($id : id, $oldSalePrice : salePrice)
+  $promotionApp : PromotionApplication( product == $product  )
+then
+  $product.setSalePrice($oldSalePrice * (1 - $promotionApp.getPromotion().getPercent()));
+  System.out.println($product.getName() + " sale price " +  $oldSalePrice + " -> " + $product.getSalePrice());
+end
+
+rule "End Promotion Application"
+when
+  $p : Product($oldSalePrice : salePrice)
+  not(PromotionApplication(product == $p))
+then
+  $p.setSalePrice($p.getPrice());
+  System.out.println("No promotion for " + $p.getName() + " " + $oldSalePrice + " -> " + $p.getSalePrice());
+end

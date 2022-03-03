@@ -1,0 +1,30 @@
+import model.stream.Event
+import model.stream.Promotion
+
+declare Promotion
+    @role( event )
+    @timestamp( timestamp )
+    @duration( duration )
+end
+
+declare Event
+    @role( event )
+    @timestamp( timestamp )
+end
+
+rule event_in_promotion
+when
+    $e : Event($price : price, salePrice == -1)
+    $newPrice : Double() from
+         accumulate ( Promotion($percent : percent, this includes $e) ,
+                init( double total=$price; ),
+                action( total *= (1 - $percent); ),
+                result( new Double (total)))
+then
+    $e.setSalePrice($newPrice);
+    //System.out.println("event " + $e.getName() + " happen during promotion");
+end
+
+query get_all_events
+    $event : Event()
+end

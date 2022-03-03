@@ -1,0 +1,32 @@
+package rules
+
+import model.fibonacci.Fibonacci;
+
+
+rule init
+when
+    f : Fibonacci( $v : value == -1, $s : sequence == 1 || == 0)
+then
+    modify( f ) { setValue(1) };
+    System.out.println("Compute " + $s + " value = " + f.getValue());
+end
+
+rule recurse
+    salience 10
+when
+    f : Fibonacci( $v : value == -1, $s : sequence )
+    not( Fibonacci( sequence == 0 ) )
+then
+    insert(new Fibonacci($s - 1));
+    System.out.println("Recurse seq " + $s);
+end
+
+rule calculate
+when
+    f1 : Fibonacci( $s1 : sequence, $v1 : value != -1)
+    f2 : Fibonacci( $s2 : sequence == $s1 + 1, $v2 : value != -1)
+    f3 : Fibonacci( $s3 : sequence == $s2 + 1, $v3 : value == -1)
+then
+    modify( f3 ) { setValue($v1 + $v2) };
+    System.out.println("Compute " + f3.getSequence() + " value = " + f3.getValue());
+end

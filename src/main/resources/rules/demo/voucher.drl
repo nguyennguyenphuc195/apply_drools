@@ -1,0 +1,94 @@
+package rules;
+import java.util.Map;
+import demo.DataSource;
+
+declare Event
+    @role( event )
+    @timestamp( timestamp )
+
+    voucher : Map
+    timestamp : long
+end
+
+rule outputVoucherDetail
+when
+    $out : Map(this["productId"] != null,
+                   this["storeId"] != null,
+                   this["vat"] != null,
+                   this["price"] != null,
+                   this["type"] == 0,
+                   !this.containsKey("revenue")) from entry-point "Voucher"
+then
+    float price = (float) $out.get("price");
+    if ($out.containsKey("promotionPercent")) {
+        price = price * (1 - (float) $out.get("promotionPercent"));
+        //System.out.println("Apply in revenue");
+    }
+    float vat = (float) $out.get("vat");
+    $out.put("revenue", price * (1 + vat / 100));
+    update($out);
+end
+
+rule inputVoucherDetail
+when
+    $in : Map(this["productId"] != null,
+                   this["storeId"] != null,
+                   this["vat"] != null,
+                   this["price"] != null,
+                   this["type"] == 1,
+                   !this.containsKey("revenue")) from entry-point "Voucher"
+then
+    float price = (float) $in.get("price");
+    if ($in.containsKey("promotionPercent")) {
+        price = price * (1 - (float) $in.get("promotionPercent"));
+        //System.out.println("Apply in revenue");
+    }
+    float vat = (float) $in.get("vat");
+    $in.put("revenue", -price * (1 + vat / 100));
+    update($in);
+end
+
+rule enrichStore
+    salience 10
+when
+    $ds : DataSource()
+    $v : Map(this["productId"] != null,
+             this["storeId"] != null,
+             this["vat"] != null,
+             this["price"] != null,
+             !this.containsKey("storeName")) from entry-point "Voucher"
+    $store : Map((int) this["id"] == (int) $v.get("storeId")) from $ds.getStores()
+then
+    $v.put("storeName", $store.get("name"));
+    update($v);
+end
+
+rule enrichProduct
+    salience 10
+when
+    $ds : DataSource()
+    $v : Map(this["productId"] != null,
+             this["storeId"] != null,
+             this["vat"] != null,
+             this["price"] != null,
+             !this.containsKey("productName")) from entry-point "Voucher"
+    $prod : Map((int) this["id"] == (int) $v.get("productId")) from $ds.getProducts()
+then
+    $v.put("productName", $prod.get("name"));
+    update($v);
+end
+
+rule addEvent
+    salience 10
+when
+    $out : Map(this["productId"] != null,
+               this["storeId"] != null,
+               this["vat"] != null,
+               this["price"] != null,
+               this["timestamp"] != null) from entry-point "Voucher"
+    not Event( voucher == $out )
+then
+    Event e = new Event( $out, (long) $out.get("timestamp") );
+    insert( e );
+    //System.out.println("Add new event " + e);
+end

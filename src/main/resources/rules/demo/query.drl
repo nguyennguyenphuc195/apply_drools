@@ -1,0 +1,22 @@
+package rules;
+import java.util.Map;
+
+query list_all_voucher_with_revenue
+    $m : Map( this.containsKey("revenue") ) from entry-point "Voucher"
+end
+
+query list_all_with_revenue_more_than(float x)
+    $m : Map( this.containsKey("revenue"), this["revenue"] >= x )
+end
+
+query sum_revenue_by_product_id(int id)
+    $sum : Float() from
+         accumulate ( Map( this.containsKey("revenue"),
+                           this["productId"] == id,
+                           $revenue : this["revenue"]
+                         ) from entry-point "Voucher" ,
+                init( double total=0; ),
+                action( total +=  (float) $revenue; ),
+                result( new Float (total)))
+end
+

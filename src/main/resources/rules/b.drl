@@ -1,0 +1,20 @@
+package rules
+import model.Applicant;
+import model.Application;
+
+global Integer threshold;
+
+rule "Is of valid age"
+when
+  Applicant(age < threshold)
+  $a : Application()
+then
+  $a.setValid(false);
+end
+
+rule "Application was made this year"
+when
+  $a : Application(dateApplied > "01-jan-2009")
+then
+  $a.setValid(false);
+end

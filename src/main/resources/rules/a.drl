@@ -1,0 +1,20 @@
+package rules
+
+import model.DataModel;
+
+dialect "mvel"
+rule "even"
+    when
+        $p : DataModel(data % 2 == 0)
+    then
+        $p.setSquare($p.data * $p.data)
+        $p.setIsEven(1)
+end
+
+rule "odd"
+    when
+        $p :  DataModel(data % 2 == 1)
+    then
+        $p.setSquare($p.data * $p.data)
+        $p.setIsEven(0)
+end
