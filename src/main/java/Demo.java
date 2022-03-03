@@ -1,3 +1,4 @@
+import cli.CommandLine;
 import demo.DataSource;
 import drools.StatefulSessionServices;
 import model.promotion.Product;
@@ -8,17 +9,20 @@ import org.kie.api.runtime.rule.FactHandle;
 import org.kie.api.runtime.rule.QueryResults;
 import org.kie.api.runtime.rule.QueryResultsRow;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class Demo {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         List<String> lst = new ArrayList<>();
-        lst.add("D:\\MWGSoftware\\MWGProject\\mwgdrools\\src\\main\\resources\\rules\\demo\\voucher.drl");
-        lst.add("D:\\MWGSoftware\\MWGProject\\mwgdrools\\src\\main\\resources\\rules\\demo\\promotion.drl");
-        lst.add("D:\\MWGSoftware\\MWGProject\\mwgdrools\\src\\main\\resources\\rules\\demo\\query.drl");
+        lst.add("/home/nguyennp/IdeaProjects/apply_drools/apply_drools/src/main/resources/rules/demo/voucher.drl");
+        lst.add("/home/nguyennp/IdeaProjects/apply_drools/apply_drools/src/main/resources/rules/demo/promotion.drl");
+        lst.add("/home/nguyennp/IdeaProjects/apply_drools/apply_drools/src/main/resources/rules/demo/query.drl");
 
         HashMap<String, String> properties = new HashMap<>();
         properties.put("drools.eventProcessingMode", "stream");
@@ -31,13 +35,8 @@ public class Demo {
 
         KieSession session = service.getKieSession();
         session.insert(ds);
+
         /*
-        int[] productId = {1, 1, 1, 2, 2, 3, 3, 3};
-        int[] storeId = {1, 1, 1, 2, 2, 3, 3, 3};
-        float[] price = {100, 100, 100, 200, 200, 300, 300, 300};
-        float[] vat = {10, 10, 10, 10, 10, 10, 10, 10};
-        int[] type = {1, 0, 1, 0, 0, 0, 0, 1};
-         */
         int[] id = {1, 2, 3, 4};
         int[] productId = {1, 2, 3, 4};
         int[] storeId = {3, 2, 1, 2};
@@ -94,6 +93,39 @@ public class Demo {
             Map<String, Object> m = (Map<String, Object>) row.get( "$m" );
             System.out.println(m.get("voucherId") + " - " + m.get("revenue") + " - " + m.get("storeName") + " - " + m.get("productName"));
         }
+        */
+        EntryPoint voucherEntry = session.getEntryPoint("Voucher");
+        EntryPoint promEntry = session.getEntryPoint("Promotion");
+        CommandLine cmd = new CommandLine();
+        int opt;
+        Map<String, Object> m;
+        do {
+            opt = cmd.run();
+            switch (opt) {
+                case 1: {
+                    m = cmd.addVoucher();
+                    voucherEntry.insert(m);
+                    session.fireAllRules();
+                    break;
+                }
+                case 2: {
+                    m = cmd.addPromo();
+                    promEntry.insert(m);
+                    session.fireAllRules();
+                    break;
+                }
+                case 3: {
+                    QueryResults results = session.getQueryResults("list_all_voucher_with_revenue");
+                    for ( QueryResultsRow row : results ) {
+                        m = (Map<String, Object>) row.get( "$m" );
+                        String o = String.format("id=%s\nrevenue=%s\nstore name=%s\nproduct name=%s",
+                                m.get("voucherId"), m.get("revenue"), m.get("storeName"), m.get("productName"));
+                        System.out.println(o);
+                    }
+                    break;
+                }
+            }
+        } while (opt != 0);
         session.dispose();
     }
 
